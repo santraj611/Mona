@@ -10,15 +10,16 @@ A modular, offline-first personal assistant powered by a local GGUF model via `l
 
 ```
 mona/
-├── main.py        # Entry point — CLI chat loop
-├── config.py      # All settings in one place
-├── llm.py         # Model loading, prompt building, streaming
-├── memory.py      # Conversation history (sliding window)
-├── router.py      # Instant rule-based search/skip classifier
-├── search.py      # DuckDuckGo web search + page scraping
-├── rag.py         # Local document ingestion + TF-IDF retrieval
-├── tests.py       # Full test suite (51 tests)
-└── documents/     # Drop .txt / .md / .pdf files here for RAG
+├── documents/     # Drop .txt / .md / .pdf files here for RAG
+├── src/           # Source code
+    ├── main.py        # Entry point — CLI chat loop
+    ├── config.py      # All settings in one place
+    ├── llm.py         # Model loading, prompt building, streaming
+    ├── memory.py      # Conversation history (sliding window)
+    ├── router.py      # Instant rule-based search/skip classifier
+    ├── search.py      # DuckDuckGo web search + page scraping
+    ├── rag.py         # Local document ingestion + TF-IDF retrieval
+    ├── tests.py       # Full test suite (51 tests)
 ```
 
 ---
