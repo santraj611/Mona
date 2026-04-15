@@ -20,24 +20,43 @@
 import os
 
 # ── Model ──────────────────────────────────────────────────────────────────────
-MODEL_PATH = os.path.expanduser("~/models/qwen2.5-coder-3b-instruct-q4_k_m.gguf")
+# Primary model to load first.
+MODEL_PATH = os.path.expanduser("~/models/gemma-4-E4B-it-Q4_K_M.gguf")
+# Tried only if primary model fails to load.
+FALLBACK_MODEL_PATHS = [
+    os.path.expanduser("~/models/tinyllama_1B.gguf"),
+    os.path.expanduser("~/models/qwen2.5-coder-3b-instruct-q4_k_m.gguf"),
+]
+# Prompt format used to build chat prompts.
+# Options: "auto", "chatml", "gemma", "llama3", "mistral"
+# - auto: infer from MODEL_PATH (qwen/gemma/llama3/mistral -> matching format)
+PROMPT_FORMAT = "auto"
 
 # ── Runtime ────────────────────────────────────────────────────────────────────
-N_CTX      = 2048   # context window (lower = faster, less memory)
-N_THREADS  = 4      # match your physical CPU core count
-N_BATCH    = 512    # tokens processed per batch
+# CPU-friendly preset for low-end systems (no GPU/VRAM).
+LOW_RESOURCE_MODE = True
+# N_CTX: smaller context = less RAM and faster prompt processing.
+N_CTX      = 4096 if LOW_RESOURCE_MODE else 32768
+# Use a conservative thread count by default to avoid freezing the system.
+N_THREADS  = max(1, (os.cpu_count() or 2) * 3 // 4)
+# Lower batch size significantly reduces peak memory on CPU.
+N_BATCH    = 192 if LOW_RESOURCE_MODE else 512
+# Try to enable llama.cpp Flash Attention (reduces KV-cache warnings and memory).
+LLAMA_FLASH_ATTN = True
 
 # ── Generation ─────────────────────────────────────────────────────────────────
-MAX_TOKENS  = 256   # max tokens per reply (keep low for a 3B model)
+MAX_TOKENS  = 192 if LOW_RESOURCE_MODE else 1024
 TEMPERATURE = 0.7
 TOP_P       = 0.9
 
 # ── Persona ────────────────────────────────────────────────────────────────────
 ASSISTANT_NAME = "Mona"
-SYSTEM_PROMPT  = (
+SYSTEM_PROMPT = (
     "You are a friendly assistant named Mona. "
-    "You answer as concisely as possible. "
-    "You are helpful, kind, clever, and very friendly."
+    "You are helpful, kind, clever, and very friendly. "
+    "For coding tasks, write clean code with brief explanations. "
+    "For creative tasks like stories, write multiple paragraphs. "
+    "Match your response length to what the question actually needs."
 )
 
 # ── Memory ─────────────────────────────────────────────────────────────────────

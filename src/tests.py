@@ -160,6 +160,7 @@ class TestBuildPrompt(unittest.TestCase):
 
     def setUp(self):
         self.llm_mod = _import_llm()
+        self.llm_mod.PROMPT_FORMAT = "chatml"
         self.build   = self.llm_mod._build_prompt
 
     def test_system_block_present(self):
@@ -202,6 +203,46 @@ class TestBuildPrompt(unittest.TestCase):
         prompt  = self.build(history)
         positions = [prompt.index(t) for t in ["q1", "a1", "q2", "a2", "q3"]]
         self.assertEqual(positions, sorted(positions))
+
+    def test_gemma_prompt_format_tags(self):
+        self.llm_mod.PROMPT_FORMAT = "gemma"
+        prompt = self.build([{"role": "user", "content": "hi"}])
+        self.assertIn("<start_of_turn>user", prompt)
+        self.assertIn("<start_of_turn>model\n", prompt)
+        self.assertNotIn("<|im_start|>", prompt)
+
+    def test_gemma_maps_assistant_role_to_model(self):
+        self.llm_mod.PROMPT_FORMAT = "gemma"
+        history = make_history(("q1", "a1"))
+        prompt = self.build(history)
+        self.assertIn("<start_of_turn>model\na1<end_of_turn>", prompt)
+
+    def test_auto_prompt_format_uses_model_path(self):
+        self.llm_mod.PROMPT_FORMAT = "auto"
+        self.llm_mod.MODEL_PATH = "/tmp/gemma-3-4b-it-q4_k_m.gguf"
+        self.assertEqual(self.llm_mod._resolve_prompt_format(), "gemma")
+
+    def test_auto_prompt_format_detects_llama3(self):
+        self.llm_mod.PROMPT_FORMAT = "auto"
+        self.llm_mod.MODEL_PATH = "/tmp/llama-3.1-8b-instruct-q4_k_m.gguf"
+        self.assertEqual(self.llm_mod._resolve_prompt_format(), "llama3")
+
+    def test_auto_prompt_format_detects_mistral(self):
+        self.llm_mod.PROMPT_FORMAT = "auto"
+        self.llm_mod.MODEL_PATH = "/tmp/mistral-7b-instruct-v0.3-q4_k_m.gguf"
+        self.assertEqual(self.llm_mod._resolve_prompt_format(), "mistral")
+
+    def test_llama3_prompt_uses_header_tokens(self):
+        self.llm_mod.PROMPT_FORMAT = "llama3"
+        prompt = self.build([{"role": "user", "content": "hi"}])
+        self.assertIn("<|start_header_id|>user<|end_header_id|>", prompt)
+        self.assertIn("<|start_header_id|>assistant<|end_header_id|>", prompt)
+
+    def test_mistral_prompt_uses_inst_tags(self):
+        self.llm_mod.PROMPT_FORMAT = "mistral"
+        prompt = self.build([{"role": "user", "content": "hi"}])
+        self.assertIn("[INST]", prompt)
+        self.assertIn("[/INST]", prompt)
 
 
 # ---------------------------------------------------------------------------

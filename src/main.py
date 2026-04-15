@@ -21,7 +21,7 @@ from llm import load_model, stream_response
 from router import should_search
 from memory import ConversationMemory
 from rag import load_rag, build_context_block
-from search import web_search, build_search_context
+from search import SearchResult, web_search, build_search_context
 
 
 def main() -> None:
@@ -63,7 +63,7 @@ def main() -> None:
         # ── Web search (takes priority over local RAG) ─────────────────────
         if should_search(user_input):
             print("🌐 Searching the web…", flush=True)
-            results = web_search(user_input)
+            results: list[SearchResult] = web_search(user_input)
             if results:
                 context = build_search_context(results, user_input)
                 print(f"✅ Got {len(results)} result(s)")

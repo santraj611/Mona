@@ -24,6 +24,7 @@
 
 import re
 import textwrap
+from typing import Any, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -35,6 +36,13 @@ from config import (
     SEARCH_MAX_CHARS,
     SEARCH_TIMEOUT,
 )
+
+
+class SearchResult(TypedDict):
+    title: Any
+    url: Any
+    snippet: Any
+    body: Any
 
 
 # ── Fetching ───────────────────────────────────────────────────────────────────
@@ -61,39 +69,40 @@ def _fetch_page(url: str) -> str:
 
 # ── Main search function ───────────────────────────────────────────────────────
 
-def web_search(query: str) -> list[dict]:
+def web_search(query: str) -> list[SearchResult]:
     """
     Search DuckDuckGo and return a list of result dicts:
       {"title": str, "url": str, "snippet": str, "body": str}
     """
     clean_query = strip_prefix(query)
-    results     = []
+    results: list[SearchResult]     = []
 
     try:
         with DDGS() as ddgs:
             hits = list(ddgs.text(clean_query, max_results=SEARCH_MAX_RESULTS))
     except Exception as e:
         print(f"  ⚠️  Search failed: {e}")
-        return []
+        return results
 
     for hit in hits:
         url     = hit.get("href", "")
         snippet = hit.get("body", "")[:300]
         body    = _fetch_page(url) if url else ""
 
-        results.append({
-            "title":   hit.get("title", ""),
-            "url":     url,
-            "snippet": snippet,
-            "body":    body or snippet,   # fallback to snippet if fetch fails
-        })
+        sr = SearchResult(
+            title   = hit.get("title", ""),
+            url     = url,
+            snippet = snippet,
+            body    = body or snippet,   # fallback to snippet if fetch fails
+        )
+        results.append(sr)
 
     return results
 
 
 # ── Context formatting ─────────────────────────────────────────────────────────
 
-def build_search_context(results: list[dict], query: str) -> str | None:
+def build_search_context(results: list[SearchResult], query: str) -> str | None:
     """Format search results into a context block for the prompt."""
     if not results:
         return None
